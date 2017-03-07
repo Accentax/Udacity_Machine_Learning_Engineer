@@ -1,0 +1,54 @@
+from sklearn import linear_model, decomposition, datasets
+from sklearn.pipeline import Pipeline
+from sklearn.model_selection import GridSearchCV
+import matplotlib.pyplot as plt
+import pandas as pd
+
+print("Loading data...")
+# Load the data from the CSV files
+training_data = pd.read_csv('numerai_training_data.csv', header=0)
+prediction_data = pd.read_csv('numerai_tournament_data.csv', header=0)
+Y = training_data['target']
+X = training_data.drop('target', axis=1)
+t_id = prediction_data['t_id']
+x_prediction = prediction_data.drop('t_id', axis=1)
+
+
+from sklearn.linear_model import LogisticRegression 
+logistic = linear_model.LogisticRegression()
+from sklearn.decomposition import PCA
+pca = decomposition.PCA()
+pipe = Pipeline(steps=[('pca', pca), ('logistic', logistic)])
+
+digits = datasets.load_digits()
+X_digits = digits.data
+y_digits = digits.target
+
+###############################################################################
+# Plot the PCA spectrum
+pca.fit(X)
+
+plt.figure(1, figsize=(4, 3))
+plt.clf()
+plt.axes([.2, .2, .7, .7])
+plt.plot(pca.explained_variance_, linewidth=2)
+plt.axis('tight')
+plt.xlabel('n_components')
+plt.ylabel('explained_variance_')
+
+###############################################################################
+# Prediction
+
+n_components = [10,20,40]
+Cs = np.logspace(-4, 4, 3)
+
+#Parameters of pipelines can be set using ‘__’ separated parameter names:
+#print fitting model
+estimators = [('reduce_dim', PCA()), ('clf', LogisticRegression())]
+params = dict(reduce_dim=[None, PCA(5), PCA(10)],clf=[LogisticRegression()],clf__C=[0.1, 10, 100])
+grid_search = GridSearchCV(pipe, param_grid=params)
+grid_search.fit(X_digits,y_digits)
+#print best 
+plt.axvline(estimator.best_estimator_.named_steps['pca'].n_components,
+            linestyle=':', label='n_components chosen')
+plt.legend(prop=dict(size=12))
